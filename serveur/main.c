@@ -85,3 +85,59 @@ void ExempleSignaux(void) {
    
    /// ///
 }
+
+
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include "../commun/commun.h"
+#include <asm-generic/socket.h>
+
+
+
+int main(){
+  int server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
+
+  int opt = 1;
+  setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+
+  struct sockaddr_in address;   //Adresse du serveur du socket
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = INADDR_ANY;
+  address.sin_port = htons(5555);
+
+
+  checked(bind(server_fd, (struct sockaddr *)&address, sizeof(address))); //Lie l'adresse au socket
+
+  checked(listen(server_fd, 10)); // mise en écoute de l'utilisateur
+
+  //code ici
+  //lancer cette partie du code sur un processus distinct pour chaque demande d'un utilisateur ?
+  //chaque processus lance la comparaison avec l'image de chaque client
+  // une image à comparer = un processus créé pour lancer la comparaison sans attendre la fin de la précédente
+
+
+  size_t addrlen = sizeof(address);
+  int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
+  
+  char buffer[1024];
+  int lu;
+
+  while ((lu = read(new_socket, buffer, 1024)) > 0) {
+     checked_wr(write(new_socket, buffer, lu) < 0);
+  }
+  
+  close(server_fd);
+  close(new_socket);
+
+
+
+
+  return 0;
+}
