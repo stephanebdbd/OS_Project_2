@@ -9,5 +9,8 @@ all: libimg-dist.a
 libimg-dist.a: $(OBJS)
 	ar rcs libimg-dist.a $(OBJS)
 
+clean:
+	rm -f *.o *.a
+
 %.o: %.c %.h
 	$(CC) $(OPT) $(DBG_OPT) -c $< -o $@
