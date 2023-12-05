@@ -1,11 +1,13 @@
+#define _USE_MATH_DEFINES
 #include <stdint.h>
 #include <math.h>
 #include <stdio.h>
-
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #include "pHash.h"
 #include "bmp.h"
 #include "verbose.h"
-
 
 /**
  * Calcule la transformée en cosinus discrets (DCT) à 2 dimensions
@@ -22,8 +24,7 @@ static void DiscreteCosineTransform2D(uint32_t size, const float input[size][siz
          sum = 0;
          for (x = 0; x < size; x++) {
             for (y = 0; y < size; y++) {
-               sum = sum + input[x][y] * cos(((2. * x + 1.) * u * M_PI) / (2. * size))
-                     * cos(((2. * y + 1.) * v * M_PI) / (2. * size));
+               sum = sum + input[x][y] * cos(((2. * x + 1.) * u * M_PI) / (2. * size)) * cos(((2. * y + 1.) * v * M_PI) / (2. * size));
             }
          }
          

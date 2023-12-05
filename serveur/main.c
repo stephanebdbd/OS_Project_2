@@ -51,6 +51,8 @@ void SignalHandler(int sig) {
 }
 
 void ExempleSignaux(void) {
+   #include <asm-generic/signal-defs.h>
+   #include <asm/signal.h>
    /// Exemple gestion de signaux (cf Annexe de l'énoncé & corrigé du projet 1) ///
    
    // Forcer l'interruption des appels systèmes lors de la réception de SIGINT
