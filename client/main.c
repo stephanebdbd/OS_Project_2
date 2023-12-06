@@ -19,25 +19,21 @@ int main(){
     inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
     checked(connect(sock, (struct sockaddr *)&address, sizeof(address)));
 
-    FILE *file;
     char chemin[1000];
-    char *imageBuffer;
-    long fileSize;
+
 
     while (fgets(chemin, sizeof(chemin), stdin) != NULL){
-        chemin[strlen(chemin)-1] = '\0';
-        file = fopen(chemin, "rb");
-        fileSize = ftell(file);
-        imageBuffer = (char *)malloc(fileSize);
-        fread(imageBuffer, 1, fileSize, file);
-        fclose(file);
+        chemin[strlen(chemin)-1] = '\0';    
+
         printf("Envoi...\n");
-        checked_wr(write(sock, imageBuffer, strlen(imageBuffer)+1));
-        free(imageBuffer);
+        checked_wr(write(sock, chemin, strlen(chemin)+1));
+
     }
     close(sock);
     return 0;
 }
+
+
 
 
 
