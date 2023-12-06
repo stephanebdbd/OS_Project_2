@@ -119,11 +119,6 @@ int main(){
 
   checked(listen(server_fd, 10)); // mise en écoute de l'utilisateur
 
-  //code ici
-  //lancer cette partie du code sur un processus distinct pour chaque demande d'un utilisateur ?
-  //chaque processus lance la comparaison avec l'image de chaque client
-  // une image à comparer = un processus créé pour lancer la comparaison sans attendre la fin de la précédente
-
 
   size_t addrlen = sizeof(address);
   int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
@@ -132,7 +127,9 @@ int main(){
   int lu;
 
   while ((lu = read(new_socket, buffer, 1024)) > 0) {
-     checked_wr(write(new_socket, buffer, lu) < 0);
+      printf("Je rentre dans le serveur.\n");
+      printf("Le chemin est %s\n", buffer);
+      checked_wr(write(new_socket, buffer, lu) < 0);
   }
   
   close(server_fd);
