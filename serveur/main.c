@@ -21,7 +21,7 @@
 void ExempleSignaux(void);
 
 
-int main(int argc, char* argv[]){
+int main(){
    int server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
 
    int opt = 1;
@@ -90,12 +90,11 @@ int main(int argc, char* argv[]){
 
 static volatile sig_atomic_t signalRecu = 0;
 void SignalHandler(int sig) {
-   signalRecu = 1;
+   signalRecu = sig;
 }
 
 void ExempleSignaux(void) {
-   #include <asm-generic/signal-defs.h>
-   #include <asm/signal.h>
+
    /// Exemple gestion de signaux (cf Annexe de l'énoncé & corrigé du projet 1) ///
    
    // Forcer l'interruption des appels systèmes lors de la réception de SIGINT
