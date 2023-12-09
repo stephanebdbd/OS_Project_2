@@ -61,6 +61,22 @@ int main(){
          return 1; 
 
       
+      FILE *listing = popen("./list-file ./img/", "r");
+      if (listing == NULL) {
+         perror("Erreur lors de l'ouverture du processus");
+         exit(EXIT_FAILURE);
+      }
+
+      const char *imagesBank;
+
+      char line[1000];
+      while (fgets(line, sizeof(line), listing) != NULL) {
+         line[strlen(line)-1] = '\0';
+         printf("Le chemin de l'image est : %s\n", line);   //il faut encore ajouter chaque line à imagesBank
+      }
+
+      pclose(listing);
+
 
       // Calculer la distance entre hash1 et hash2
       unsigned int distance = DistancePHash(imageHash, hash2); 
