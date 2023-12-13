@@ -17,7 +17,7 @@ struct le_client {
 
 
 void* client_socket(void* arg) {
-   struct le_client* sock = (struct le_client)arg;
+   struct le_client* sock = (struct le_client*)arg;
 
    int socketss = checked(socket(AF_INET, SOCK_STREAM, 0));
 
@@ -26,7 +26,7 @@ void* client_socket(void* arg) {
    address.sin_addr.s_addr = INADDR_ANY;
    address.sin_port = htons(5555);
    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
-   checked(connect(socketss, (struct sockaddr)&address, sizeof(address)));
+   checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
 
    char chemin[1000];
 
