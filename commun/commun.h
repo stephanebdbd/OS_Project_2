@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+struct image {
+   char chemin[1000]; 
+   int distance;
+   uint64_t hash;  
+};
+
 int _checked(int ret, char* calling_function) {
   if (ret < 0) {
     perror(calling_function);

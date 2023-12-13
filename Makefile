@@ -40,10 +40,5 @@ pokedex-client: $(DIR_CLIENT)/main.c $(OBJS_SERV)
 %.o: $(DIR_COMMON)/%.c (DIR_COMMON)/%.h
 	$(CC) $(OPT) $(DBG_OPT) -c $< -o $@
 
-.PHONY: clean
-
 clean:
-	rm -f *.o
-	rm -f img-search
-	rm -f pokedex-client
-	rm -f img-dist/*.a img-dist/*.o
+	rm -f *.o img-search pokedex-client img-dist/*.a img-dist/*.o
