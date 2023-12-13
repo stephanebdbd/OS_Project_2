@@ -28,13 +28,13 @@ int main(int argc, char* argv[]){
       perror("Erreur lors de l'ouverture du processus");
       exit(EXIT_FAILURE);
    }
-   int* j; *j=0;
-   int i= *j/34;
+   int i=0, j=0;
    
-   while ((fgets(librairie[i][*j]->chemin, sizeof(librairie[i][*j]->chemin), listing) != NULL) || (*j==101)){
-      if (!PHash(librairie[i][*j]->chemin, &librairie[i][*j]->hash))
+   while ((fgets(librairie[i][j]->chemin, sizeof(librairie[i][j]->chemin), listing) != NULL) || (j==32 && i == 2)){
+      if (!PHash(librairie[i][j]->chemin, &librairie[i][j]->hash))
          return 0;
-      *j++;
+      
+      j++;
    }
 
    pclose(listing);
@@ -59,24 +59,24 @@ int main(int argc, char* argv[]){
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
    
    int lu;
-   pthread_t t1, t2, t3;
+   // pthread_t t1, t2, t3;
    
    struct image* meilleure_image;
    struct image* client;
-
    while ((lu = read(new_socket, client->chemin, 1024)) > 0) {
+      meilleure_image->distance = 64;
       printf("Le chemin est %s\n", client->chemin);
       client->chemin[strlen(client->chemin)-1] = '\0';
       // On regarde si l'image est en dessous de 20ko ensuite on commence le processus
-      if (!PHash(client->chemin, &client->hash))
+      /*if (!PHash(client->chemin, &client->hash))
          return 0;
-      /*pthread_create(&t1, NULL, compare_image, (void*)&uneImage);
+      pthread_create(&t1, NULL, compare_image, (void*)&uneImage);
       pthread_create(&t2, NULL, compare_image, (void*)&uneImage);
       pthread_create(&t3, NULL, compare_image, (void*)&uneImage);
       pthread_join(t1, NULL);
       pthread_join(t2, NULL);
-      pthread_join(t3, NULL);*/
-      checked_wr(write(new_socket, meilleure_image->distance, lu) < 0);
+      pthread_join(t3, NULL);
+      checked_wr(write(new_socket, meilleure_image, lu) < 0);*/
    }
    close(server_fd);
    close(new_socket);
