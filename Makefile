@@ -2,7 +2,9 @@ CC=gcc
 OPT=-Wall -Wextra -std=gnu11 -O2
 LIB_SERV=-L ./img-dist/ -limg-dist -lm -lpthread
 LIB_CLIENT=
-
+LIBS=-lm
+IMG_DIST=./img-dist
+OBJS= $(IMG_DIST)/bmp.o $(IMG_DIST)/pHash.o $(IMG_DIST)/verbose.o
 # Code du serveur (img-search)
 DIR_SERV=serveur
 
@@ -15,12 +17,15 @@ DIR_COMMON=commun
 OBJS_SERV=
 OBJS_CLIENT=
 
-all: img-search pokedex-client
+all: $(IMG_DIST)/libimg-dist.a img-search pokedex-client
 
-libimg-dist.a:
-	(cd img-dist ; make)
+$(IMG_DIST)/%.o: $(IMG_DIST)/%.c $(IMG_DIST)/%.h
+	$(CC) $(OPT) $(DBG_OPT) -c $< -o $@
 
-img-search: libimg-dist.a $(DIR_SERV)/main.c $(OBJS_SERV)
+$(IMG_DIST)/libimg-dist.a: $(OBJS)
+	ar rcs $(IMG_DIST)/libimg-dist.a $(OBJS)
+
+img-search: $(IMG_DIST)/libimg-dist.a $(DIR_SERV)/main.c $(OBJS_SERV)
 	$(CC) $(OPT) $(OPT) $(DIR_SERV)/main.c -o img-search $(OBJS_SERV) $(LIB_SERV)
 
 pokedex-client: $(DIR_CLIENT)/main.c $(OBJS_SERV)
@@ -41,3 +46,4 @@ clean:
 	rm -f *.o
 	rm -f img-search
 	rm -f pokedex-client
+	rm -f img-dist/*.a img-dist/*.o
