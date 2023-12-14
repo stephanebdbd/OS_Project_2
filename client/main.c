@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h> // Added for exit()
 #include <string.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -13,6 +14,24 @@ struct le_client {
     int client_sockets[MAX_CLIENTS];
     int nombre_de_client;
 };
+
+bool tailleImageCheck(char chemin[1000]){
+   FILE *file = fopen(chemin, "rb");
+   if(file == NULL) {
+      perror("Erreur lors de la lecture de l'image");
+      return 1;
+   }
+   fseek(file, 0, SEEK_END);
+   long fileSize = ftell(file);
+   fclose(file);
+   if(fileSize > 20 * 1024) { 
+      printf("La taille de l'image dépasse 20 ko.\n");
+      return false;
+   }
+   else{
+      return true;
+   }
+}
 
 
 
@@ -29,12 +48,34 @@ void* client_socket(void* arg) {
    checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
 
    char chemin[1000];
+   int longueur, i, ret;
+   struct image* meilleurImage;
 
    while (fgets(chemin, sizeof(chemin), stdin) != NULL) {
       chemin[strlen(chemin) - 1] = '\0';
-      printf("Envoi...\n");
-      checked_wr(write(socketss, chemin, strlen(chemin) + 1));
+      if (tailleImageCheck(chemin)){
+         printf("Envoi...\n");
+         checked_wr(write(socketss, chemin, strlen(chemin) + 1));
+      }
    }
+
+   i = 0;
+   while (i < sizeof(meilleurImage)){
+      ret = read(socketss, meilleurImage, sizeof(meilleurImage) - i);
+      if (ret <= 0) {
+         if (ret < 0)
+            perror("read");
+         else
+            printf("Déconnexion du serveur.\n");
+         return 1;
+      }
+      i += ret;
+   }
+
+   printf("La meilleure image a une distance de : %s\n", meilleurImage->distance);
+
+
+
 
    close(socketss);
    return NULL;
