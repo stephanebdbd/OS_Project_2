@@ -17,26 +17,41 @@
 #include <asm-generic/socket.h>
 #include "imgdist.h"
 
+struct image* meilleure_image;
+
 void ExempleSignaux(void);
 
-int main(int argc, char* argv[]){
+void* compare_image(void *ptr) {
+   struct to_compare_image *to_compare = (struct to_compare_image*)ptr;
+      for (int j = 0; j < 34; j++) {
+         sleep(rand() % 3 + 1);
+         unsigned int distance = DistancePHash(meilleure_image->hash, to_compare->librairie[j].hash);
+         if (distance < meilleure_image->distance) {
+            meilleure_image->distance = distance;
+            strcpy(meilleure_image->chemin, to_compare->librairie[j].chemin);
+         }
+      }
+   return NULL;
+}
 
-   struct image* librairie[3][34];
-   
-   FILE *listing = popen("./list-file ./img/", "r");
+
+
+int main(){
+   struct image client;
+   struct to_compare_image to_compare[3];
+   FILE *listing = popen("./list-file ./img", "r");
    if (listing == NULL) {
       perror("Erreur lors de l'ouverture du processus");
       exit(EXIT_FAILURE);
    }
    int i=0, j=0;
-   
-   while ((fgets(librairie[i][j]->chemin, sizeof(librairie[i][j]->chemin), listing) != NULL) || (j==32 && i == 2)){
-      if (!PHash(librairie[i][j]->chemin, &librairie[i][j]->hash))
-         return 0;
-      
-      j++;
+   while ((fgets(to_compare[i].librairie[j].chemin, sizeof(to_compare[i].librairie[j].chemin), listing) != NULL)){
+      to_compare[i].librairie[j].chemin[strlen(to_compare[i].librairie[j].chemin)-1] = '\0';
+      if (!PHash(to_compare[i].librairie[j].chemin, &to_compare[i].librairie[j].hash))
+         return 1;
+      i += (j == 33) ? 1 : 0;  
+      j = (j == 33) ? 0 : j+1;
    }
-
    pclose(listing);
 
    int server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
@@ -59,24 +74,28 @@ int main(int argc, char* argv[]){
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
    
    int lu;
-   // pthread_t t1, t2, t3;
-   
-   struct image* meilleure_image;
-   struct image* client;
-   while ((lu = read(new_socket, client->chemin, 1024)) > 0) {
+   pthread_t t1, t2, t3;
+   int longueur = 0;
+   while (((lu = read(new_socket, client.chemin, 1024)) > 0) && (longueur < 1000)) {
       meilleure_image->distance = 64;
-      printf("Le chemin est %s\n", client->chemin);
-      client->chemin[strlen(client->chemin)-1] = '\0';
-      // On regarde si l'image est en dessous de 20ko ensuite on commence le processus
-      /*if (!PHash(client->chemin, &client->hash))
+      printf("Le chemin est %s\n", client.chemin);
+      int index = strlen(client.chemin)-1;
+      longueur += index;
+      client.chemin[index] = '\0';
+      if (longueur >= 1000)
+         break;
+      if (!PHash(client.chemin, &client.hash))
          return 0;
-      pthread_create(&t1, NULL, compare_image, (void*)&uneImage);
-      pthread_create(&t2, NULL, compare_image, (void*)&uneImage);
-      pthread_create(&t3, NULL, compare_image, (void*)&uneImage);
+      for (int i=0; i < 3; i++)
+         to_compare[i].client = client;
+      pthread_create(&t1, NULL, compare_image, (void*)&to_compare[0]);
+      pthread_create(&t2, NULL, compare_image, (void*)&to_compare[1]);
+      pthread_create(&t3, NULL, compare_image, (void*)&to_compare[2]);
       pthread_join(t1, NULL);
       pthread_join(t2, NULL);
       pthread_join(t3, NULL);
-      checked_wr(write(new_socket, meilleure_image, lu) < 0);*/
+      checked_wr(write(new_socket, meilleure_image->chemin, lu) < 0);
+      checked_wr(write(new_socket, &meilleure_image->distance, sizeof(meilleure_image->distance)) < 0);
    }
    close(server_fd);
    close(new_socket);
@@ -87,7 +106,7 @@ int main(int argc, char* argv[]){
 
 static volatile sig_atomic_t signalRecu = 0;
 void SignalHandler(int sig) {
-   signalRecu = 1;
+   signalRecu = sig;
 }
 
 void ExempleSignaux(void) {

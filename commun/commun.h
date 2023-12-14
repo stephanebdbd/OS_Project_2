@@ -6,9 +6,14 @@
 #include <unistd.h>
 
 struct image {
-   char chemin[1000]; 
-   int distance;
+   char chemin[1024];
+   unsigned int distance;
    uint64_t hash;  
+};
+
+struct to_compare_image{
+  struct image librairie[34];
+  struct image client;
 };
 
 int _checked(int ret, char* calling_function) {
