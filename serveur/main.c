@@ -55,21 +55,14 @@ int main(){
    pclose(listing);
 
    int server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
-   
    int opt = 1;
    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
-   
    struct sockaddr_in address;   //Adresse du serveur du socket
    address.sin_family = AF_INET;
    address.sin_addr.s_addr = INADDR_ANY;
    address.sin_port = htons(5555);
-   
-   
    checked(bind(server_fd, (struct sockaddr *)&address, sizeof(address))); //Lie l'adresse au socket
-   
    checked(listen(server_fd, 10)); // mise en écoute de l'utilisateur
-   
-   
    size_t addrlen = sizeof(address);
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
    
@@ -94,8 +87,7 @@ int main(){
       pthread_join(t1, NULL);
       pthread_join(t2, NULL);
       pthread_join(t3, NULL);
-      checked_wr(write(new_socket, meilleure_image->chemin, lu) < 0);
-      checked_wr(write(new_socket, &meilleure_image->distance, sizeof(meilleure_image->distance)) < 0);
+      checked_wr(write(new_socket, &meilleure_image, sizeof(&meilleure_image)) < 0);
    }
    close(server_fd);
    close(new_socket);

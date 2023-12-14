@@ -48,7 +48,8 @@ void* client_socket(void* arg) {
    checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
 
    char chemin[1000];
-   int longueur, i, ret;
+   long unsigned int i;
+   int ret;
    struct image* meilleurImage;
 
    while (fgets(chemin, sizeof(chemin), stdin) != NULL) {
@@ -65,14 +66,15 @@ void* client_socket(void* arg) {
       if (ret <= 0) {
          if (ret < 0)
             perror("read");
-         else
+         else{
             printf("Déconnexion du serveur.\n");
-         return 1;
+            exit(EXIT_FAILURE);
+         }
       }
       i += ret;
    }
 
-   printf("La meilleure image a une distance de : %s\n", meilleurImage->distance);
+   printf("La meilleure image a une distance de : %d\n", meilleurImage->distance);
 
 
 
