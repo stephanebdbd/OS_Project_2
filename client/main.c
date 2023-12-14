@@ -15,6 +15,28 @@ struct le_client {
     int nombre_de_client;
 };
 
+
+void lectureSocket(socketss){
+   struct image* meilleurImage;
+   int i, ret;
+   i = 0;
+   while (i < sizeof(meilleurImage)){
+      ret = read(socketss, meilleurImage, sizeof(meilleurImage) - i);
+      if (ret <= 0) {
+         if (ret < 0)
+            perror("read");
+         else
+            printf("Déconnexion du serveur.\n");
+         exit;
+      }
+      i += ret;
+   }
+   printf("Most similar image found: %s with a distance of %d.", meilleurImage->chemin, meilleurImage->distance);
+;
+
+}
+
+
 bool tailleImageCheck(char chemin[1000]){
    FILE *file = fopen(chemin, "rb");
    if(file == NULL) {
@@ -48,8 +70,7 @@ void* client_socket(void* arg) {
    checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
 
    char chemin[1000];
-   long unsigned int i;
-   int ret;
+   int i, ret;
    struct image* meilleurImage;
 
    while (fgets(chemin, sizeof(chemin), stdin) != NULL) {
@@ -60,21 +81,7 @@ void* client_socket(void* arg) {
       }
    }
 
-   i = 0;
-   while (i < sizeof(meilleurImage)){
-      ret = read(socketss, meilleurImage, sizeof(meilleurImage) - i);
-      if (ret <= 0) {
-         if (ret < 0)
-            perror("read");
-         else{
-            printf("Déconnexion du serveur.\n");
-            exit(EXIT_FAILURE);
-         }
-      }
-      i += ret;
-   }
-
-   printf("La meilleure image a une distance de : %d\n", meilleurImage->distance);
+   
 
 
 
