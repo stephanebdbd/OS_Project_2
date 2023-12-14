@@ -17,7 +17,7 @@
 #include <asm-generic/socket.h>
 #include "imgdist.h"
 
-struct image* meilleure_image;
+struct image meilleure_image;
 
 void ExempleSignaux(void);
 
@@ -25,10 +25,10 @@ void* compare_image(void *ptr) {
    struct to_compare_image *to_compare = (struct to_compare_image*)ptr;
       for (int j = 0; j < 34; j++) {
          sleep(rand() % 3 + 1);
-         unsigned int distance = DistancePHash(meilleure_image->hash, to_compare->librairie[j].hash);
-         if (distance < meilleure_image->distance) {
-            meilleure_image->distance = distance;
-            strcpy(meilleure_image->chemin, to_compare->librairie[j].chemin);
+         unsigned int distance = DistancePHash(meilleure_image.hash, to_compare->librairie[j].hash);
+         if (distance < meilleure_image.distance) {
+            meilleure_image.distance = distance;
+            strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
          }
       }
    return NULL;
@@ -69,8 +69,11 @@ int main(){
    int lu;
    pthread_t t1, t2, t3;
    int longueur = 0;
+   printf("1\n");
    while (((lu = read(new_socket, client.chemin, 1024)) > 0) && (longueur < 1000)) {
-      meilleure_image->distance = 64;
+      printf("2\n");
+      meilleure_image.distance = 64;
+      printf("3\n");
       printf("Le chemin est %s\n", client.chemin);
       int index = strlen(client.chemin)-1;
       longueur += index;
@@ -87,7 +90,7 @@ int main(){
       pthread_join(t1, NULL);
       pthread_join(t2, NULL);
       pthread_join(t3, NULL);
-      checked_wr(write(new_socket, &meilleure_image, sizeof(&meilleure_image)) < 0);
+      checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)) < 0);
    }
    close(server_fd);
    close(new_socket);

@@ -17,22 +17,22 @@ struct le_client {
 
 
 void lectureSocket(socketss){
-   struct image* meilleurImage;
+   struct image meilleurImage;
    int i, ret;
    i = 0;
    while (i < sizeof(meilleurImage)){
-      ret = read(socketss, meilleurImage, sizeof(meilleurImage) - i);
+      ret = read(socketss, &meilleurImage, sizeof(meilleurImage) - i);
       if (ret <= 0) {
          if (ret < 0)
             perror("read");
-         else
+         else{
             printf("Déconnexion du serveur.\n");
-         exit;
+            exit(1);
+         }
       }
       i += ret;
    }
-   printf("Most similar image found: %s with a distance of %d.", meilleurImage->chemin, meilleurImage->distance);
-;
+   printf("Most similar image found: %s with a distance of %d.", meilleurImage.chemin, meilleurImage.distance);
 
 }
 
@@ -70,8 +70,6 @@ void* client_socket(void* arg) {
    checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
 
    char chemin[1000];
-   int i, ret;
-   struct image* meilleurImage;
 
    while (fgets(chemin, sizeof(chemin), stdin) != NULL) {
       chemin[strlen(chemin) - 1] = '\0';
