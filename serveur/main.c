@@ -24,11 +24,14 @@ void ExempleSignaux(void);
 void* compare_image(void *ptr) {
    struct to_compare_image *to_compare = (struct to_compare_image*)ptr;
       for (int j = 0; j < 34; j++) {
-         sleep(rand() % 3 + 1);
+         printf("%s\n", to_compare->librairie[j].chemin);
+         sleep(0);
          unsigned int distance = DistancePHash(meilleure_image.hash, to_compare->librairie[j].hash);
          if (distance < meilleure_image.distance) {
             meilleure_image.distance = distance;
             strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
+            printf("La meilleure image est %s avec une distance de %d\n", meilleure_image.chemin, meilleure_image.distance);
+
          }
       }
    return NULL;
@@ -68,22 +71,15 @@ int main(){
    
    int lu;
    pthread_t t1, t2, t3;
-   int longueur = 0;
-   printf("1\n");
-   while (((lu = read(new_socket, client.chemin, 1024)) > 0) && (longueur < 1000)) {
-      printf("2\n");
+   while ((lu = read(new_socket, client.chemin, 1024)) > 0) {
       meilleure_image.distance = 64;
-      printf("3\n");
-      printf("Le chemin est %s\n", client.chemin);
-      int index = strlen(client.chemin)-1;
-      longueur += index;
-      client.chemin[index] = '\0';
-      if (longueur >= 1000)
-         break;
+      client.chemin[strlen(client.chemin)] = '\0';
+      printf("Le client a envoyé %s\n", client.chemin);
       if (!PHash(client.chemin, &client.hash))
          return 0;
       for (int i=0; i < 3; i++)
          to_compare[i].client = client;
+      printf("Le client a envoyé %s\n", to_compare[0].client.chemin);
       pthread_create(&t1, NULL, compare_image, (void*)&to_compare[0]);
       pthread_create(&t2, NULL, compare_image, (void*)&to_compare[1]);
       pthread_create(&t3, NULL, compare_image, (void*)&to_compare[2]);
@@ -91,6 +87,8 @@ int main(){
       pthread_join(t2, NULL);
       pthread_join(t3, NULL);
       checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)) < 0);
+      printf("Envoi de la meilleure image au client\n");
+
    }
    close(server_fd);
    close(new_socket);
