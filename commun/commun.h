@@ -7,7 +7,7 @@
 
 struct image {
    char chemin[1024];
-   unsigned int distance;
+   int distance;
    uint64_t hash;  
 };
 

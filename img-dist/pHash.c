@@ -176,6 +176,6 @@ unsigned int DistancePHash(uint64_t pHash1, uint64_t pHash2) {
    for (unsigned int i = 0; i < 64; ++i) {
       distance += ((pHash1 & ((uint64_t)1 << i)) != (pHash2 & ((uint64_t)1 << i)));
    }
-   
+   printf("Distance : %d\n", distance);
    return distance;
 }

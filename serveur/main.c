@@ -22,13 +22,13 @@ struct image meilleure_image;
 void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
-   struct to_compare_image *to_compare = (struct to_compare_image*)ptr;
+   struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
+   printf("Comparaison de %s avec %s\n", to_compare->client.chemin, to_compare->librairie[0].chemin);
    for (int j = 0; j < 34; j++) {
-      printf("%s\n", to_compare->librairie[j].chemin);
-      sleep(0);
-      unsigned int distance = DistancePHash(meilleure_image.hash, to_compare->librairie[j].hash);
-      if (distance < meilleure_image.distance) {
-         meilleure_image.distance = distance;
+      printf("Comparaison de %s avec %s\n", to_compare->client.chemin, to_compare->librairie[j].chemin);
+      int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
+      if (result < meilleure_image.distance) {
+         meilleure_image.distance = result;
          strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
          printf("La meilleure image est %s avec une distance de %d\n", meilleure_image.chemin, meilleure_image.distance);
       }
@@ -49,6 +49,7 @@ int main(){
    int i=0, j=0;
    while ((fgets(to_compare[i].librairie[j].chemin, sizeof(to_compare[i].librairie[j].chemin), listing) != NULL)){
       to_compare[i].librairie[j].chemin[strlen(to_compare[i].librairie[j].chemin)-1] = '\0';
+      printf("Chemin de l'image %d : %s\n", j, to_compare[i].librairie[j].chemin);
       if (!PHash(to_compare[i].librairie[j].chemin, &to_compare[i].librairie[j].hash))
          return 1;
       i += (j == 33) ? 1 : 0;  
@@ -66,25 +67,24 @@ int main(){
    checked(listen(server_fd, 10)); // mise en écoute de l'utilisateur
    size_t addrlen = sizeof(address);
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
-   int lu;
    pthread_t t1, t2, t3;
-   while ((lu = read(new_socket, client.chemin, 1024)) > 0) {
+   while (read(new_socket, client.chemin, sizeof(client.chemin)) > 0) {
       meilleure_image.distance = 64;
       client.chemin[strlen(client.chemin)] = '\0';
-      printf("Le client a envoyé %s\n", client.chemin);
       if (!PHash(client.chemin, &client.hash))
          return 0;
       for (int i=0; i < 3; i++)
          to_compare[i].client = client;
-      printf("Le client a envoyé %s\n", to_compare[0].client.chemin);
+      printf("\nChemin de l'image client : %s\n", client.chemin);
       pthread_create(&t1, NULL, compare_image, (void*)&to_compare[0]);
       pthread_create(&t2, NULL, compare_image, (void*)&to_compare[1]);
       pthread_create(&t3, NULL, compare_image, (void*)&to_compare[2]);
       pthread_join(t1, NULL);
       pthread_join(t2, NULL);
       pthread_join(t3, NULL);
-      checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)) < 0);
-      printf("Envoi de la meilleure image au client\n");
+      checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)));
+      printf("La meilleure image est %s avec une distance de %d\n", meilleure_image.chemin, meilleure_image.distance);
+
 
    }
    close(server_fd);

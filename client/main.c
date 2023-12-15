@@ -12,24 +12,13 @@
 
 
 void lectureSocket(int socketss){
-   struct image meilleurImage;
-   long unsigned int i;
-   int ret;
-   i = 0;
-   while (i < sizeof(meilleurImage)){
-      ret = read(socketss, &meilleurImage, sizeof(meilleurImage) - i);
-      if (ret <= 0) {
-         if (ret < 0)
-            perror("read");
-         else{
-            printf("Déconnexion du serveur.\n");
-            exit(0);
-         }
-      }
-      i += ret;
+   struct image image;
+   if (read(socketss, &image, sizeof(image)) < 0){
+      perror("Erreur lors de la lecture du socket");
+      exit(EXIT_FAILURE);
    }
-   if (meilleurImage.distance < 64)
-      printf("Most similar image found: '%s' with a distance of %d.", meilleurImage.chemin, meilleurImage.distance);
+   if (image.distance < 64)
+      printf("Most similar image found: '%s' with a distance of %d.", image.chemin, image.distance);
    else
       printf("No similar image found (no comparison could be performed successfully).");
 }
@@ -63,17 +52,14 @@ void* client_socket(void* arg) {
    address.sin_addr.s_addr = INADDR_ANY;
    address.sin_port = htons(5555);
    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
-   if (checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)))){
-      perror("Erreur lors de la création du thread");
-      exit(0);
-   }
+   checked(connect(socketss, (struct sockaddr*)&address, sizeof(address)));
    nombre_de_client++;
    char chemin[1000];
    while (fgets(chemin, sizeof(chemin), stdin) != NULL) {
       chemin[strlen(chemin) - 1] = '\0';
       if (tailleImageCheck(chemin)){
          printf("Envoi...\n");
-         checked_wr(write(socketss, chemin, strlen(chemin) + 1));
+         checked_wr(write(socketss, chemin, sizeof(chemin)));
          lectureSocket(socketss);
       }
    }
