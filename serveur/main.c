@@ -23,17 +23,16 @@ void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
    struct to_compare_image *to_compare = (struct to_compare_image*)ptr;
-      for (int j = 0; j < 34; j++) {
-         printf("%s\n", to_compare->librairie[j].chemin);
-         sleep(0);
-         unsigned int distance = DistancePHash(meilleure_image.hash, to_compare->librairie[j].hash);
-         if (distance < meilleure_image.distance) {
-            meilleure_image.distance = distance;
-            strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
-            printf("La meilleure image est %s avec une distance de %d\n", meilleure_image.chemin, meilleure_image.distance);
-
-         }
+   for (int j = 0; j < 34; j++) {
+      printf("%s\n", to_compare->librairie[j].chemin);
+      sleep(0);
+      unsigned int distance = DistancePHash(meilleure_image.hash, to_compare->librairie[j].hash);
+      if (distance < meilleure_image.distance) {
+         meilleure_image.distance = distance;
+         strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
+         printf("La meilleure image est %s avec une distance de %d\n", meilleure_image.chemin, meilleure_image.distance);
       }
+   }
    return NULL;
 }
 
@@ -56,7 +55,6 @@ int main(){
       j = (j == 33) ? 0 : j+1;
    }
    pclose(listing);
-
    int server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
    int opt = 1;
    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
@@ -68,7 +66,6 @@ int main(){
    checked(listen(server_fd, 10)); // mise en écoute de l'utilisateur
    size_t addrlen = sizeof(address);
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
-   
    int lu;
    pthread_t t1, t2, t3;
    while ((lu = read(new_socket, client.chemin, 1024)) > 0) {
