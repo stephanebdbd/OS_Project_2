@@ -10,19 +10,16 @@
 int LectureImageBMP(struct client *client){
    FILE *fichierBMP = fopen(client->chemin, "rb");
    if (fichierBMP == NULL) {
-      perror("Erreur lors de l'ouverture du fichier");
       return 0;
    }
    fseek(fichierBMP, 0, SEEK_END);
    client->taille = ftell(fichierBMP);
    if (client->taille > 20.000 * 1024) {
-      perror("Le fichier est trop volumineux");
       return 0;
    }
    rewind(fichierBMP);
    if (fread(client->contenuImage, 1, client->taille, fichierBMP) == client->taille)
       return 1;
-   perror("Erreur lors de la lecture du fichier");
    return 0;
 }
 
@@ -33,9 +30,10 @@ void clientListener(int sock){
    while (fgets(client.chemin, sizeof(client.chemin), stdin) != NULL){
       client.chemin[strlen(client.chemin)-1] = '\0';
       if (LectureImageBMP(&client)){
+         client.contenuImage[strlen(client.contenuImage)-1] = '\0';
          checked_wr(write(sock, &client, sizeof(struct client)));
          if (read(sock, &meilleure_image, sizeof(struct image)) == -1)
-            perror("Erreur lors de la lecture de la meilleure image");
+            printf("No similar image found (no comparison could be performed successfully).\n");
          if (meilleure_image.distance < 64)
             printf("Most similar image found: '%s' with a distance of %d.\n", meilleure_image.chemin, meilleure_image.distance);
          else

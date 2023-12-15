@@ -25,7 +25,6 @@ void* compare_image(void *ptr) {
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->longueur; j++) {
       sleep(0);
-      printf("Le chemin reçu est %s\n", to_compare->librairie[j].chemin);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
       if (result < meilleure_image.distance) {
          meilleure_image.distance = result;
@@ -69,9 +68,8 @@ int main(){
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
    pthread_t t1, t2, t3;
    int lu;
-   while ((lu = read(new_socket, client.chemin, sizeof(client.chemin))) > 0) {
+   while ((lu = read(new_socket, &client, sizeof(struct client))) > 0) {
       meilleure_image.distance = 64;
-      client.chemin[strlen(client.chemin)] = '\0';
       if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
          for (int i=0; i < 3; i++)
             to_compare[i].client = client;
