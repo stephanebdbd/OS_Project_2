@@ -38,7 +38,7 @@ void* compare_image(void *ptr) {
 
 
 int main(){
-   struct image client;
+   struct client client;
    struct to_compare_image to_compare[3];
    FILE *listing = popen("./list-file img", "r");
    if (listing == NULL) {
@@ -69,10 +69,8 @@ int main(){
    int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
    pthread_t t1, t2, t3;
    int lu;
-   while ((lu = read(new_socket, client.chemin, sizeof(client.chemin))) > 0) {
-      meilleure_image.distance = 64;
-      client.chemin[strlen(client.chemin)] = '\0';
-      if (PHash(client.chemin, &client.hash)){
+   while ((lu = read(new_socket, &client, sizeof(client))) > 0) {
+      if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
          for (int i=0; i < 3; i++)
             to_compare[i].client = client;
          pthread_create(&t1, NULL, compare_image, (void*)&to_compare[0]);

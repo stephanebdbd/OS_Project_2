@@ -10,12 +10,19 @@ struct image {
    int distance;
    uint64_t hash;  
 };
+struct client{
+  unsigned int taille;
+  char chemin[1024];
+  char contenuImage[sizeof(char) * 1024 * 20];
+  uint64_t hash;
+};
 
 struct to_compare_image{
   struct image librairie[34];
-  struct image client;
+  struct client client;
   int longueur;
 };
+
 
 int _checked(int ret, char* calling_function) {
   if (ret < 0) {
