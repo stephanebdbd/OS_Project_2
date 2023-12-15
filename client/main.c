@@ -29,15 +29,17 @@ void clientListener(int sock){
    client_data.chemins_longueur = 0;
    while ((fgets(client_data.client.chemin, sizeof(client_data.client.chemin), stdin) != NULL) && (client_data.chemins_longueur < MAX_CHEMINS_LONGUEUR)){
       client_data.client.chemin[strlen(client_data.client.chemin)-1] = '\0';
-      if ((LectureImageBMP(&client_data.client)) && (client_data.chemins_longueur < MAX_CHEMINS_LONGUEUR)){
-         client_data.client.contenuImage[strlen(client_data.client.contenuImage)-1] = '\0';
+      if ((LectureImageBMP(&client_data.client))){
+         client_data.chemins_longueur += strlen(client_data.client.chemin);
+         if (client_data.chemins_longueur >= MAX_CHEMINS_LONGUEUR){
+            printf("No similar image found (no comparison could be performed successfully).\n");
+            break;
+         }
          checked_wr(write(sock, &client_data.client, sizeof(struct client)));
-         if (read(sock, &client_data.meilleure_image, sizeof(struct image)) == -1)
+         if ((read(sock, &client_data.meilleure_image, sizeof(struct image)) == -1) || (client_data.meilleure_image.distance >= 64))
             printf("No similar image found (no comparison could be performed successfully).\n");
-         if (client_data.meilleure_image.distance < 64)
-            printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);
          else
-            printf("No similar image found (no comparison could be performed successfully).\n");
+            printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);
       }
       else
          printf("No similar image found (no comparison could be performed successfully).\n");
