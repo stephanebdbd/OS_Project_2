@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#define MAX_CHEMINS_LONGUEUR 1000
 
 struct image {
    char chemin[1024];
@@ -21,6 +22,12 @@ struct to_compare_image{
   struct image librairie[34];
   struct client client;
   int longueur;
+};
+
+struct client_data{
+  struct client client;
+  struct image meilleure_image;
+  int chemins_longueur;
 };
 
 
