@@ -14,6 +14,7 @@ struct image {
 struct to_compare_image{
   struct image librairie[34];
   struct image client;
+  int longueur;
 };
 
 int _checked(int ret, char* calling_function) {
