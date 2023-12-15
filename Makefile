@@ -17,7 +17,10 @@ DIR_COMMON=commun
 OBJS_SERV=
 OBJS_CLIENT=
 
-all: $(IMG_DIST)/libimg-dist.a img-search pokedex-client
+all: list-file $(IMG_DIST)/libimg-dist.a img-search pokedex-client
+
+list-file:
+	chmod +x ./list-file
 
 $(IMG_DIST)/%.o: $(IMG_DIST)/%.c $(IMG_DIST)/%.h
 	$(CC) $(OPT) $(DBG_OPT) -c $< -o $@
