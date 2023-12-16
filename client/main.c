@@ -9,14 +9,12 @@
 
 int LectureImageBMP(struct client *client){
    FILE *fichierBMP = fopen(client->chemin, "rb");
-   if (fichierBMP == NULL) {
+   if (fichierBMP == NULL)
       return 0;
-   }
    fseek(fichierBMP, 0, SEEK_END);
    client->taille = ftell(fichierBMP);
-   if (client->taille > 20.000 * 1024) {
+   if (client->taille > 20.000 * 1024)
       return 0;
-   }
    rewind(fichierBMP);
    if (fread(client->contenuImage, 1, client->taille, fichierBMP) == client->taille)
       return 1;
