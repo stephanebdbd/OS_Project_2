@@ -19,20 +19,22 @@
 
 static volatile sig_atomic_t signalRecu = 0;
 struct image meilleure_image;
-pthread_mutex_t mutex;
+pthread_mutex_t mutex_compare;
+pthread_mutex_t mutex_client;
+
 
 void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->longueur; j++) {
-      pthread_mutex_lock(&mutex);
+      pthread_mutex_lock(&mutex_compare);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
       if (result < meilleure_image.distance) {
          meilleure_image.distance = result;
          strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
       }
-      pthread_mutex_unlock(&mutex);
+      pthread_mutex_unlock(&mutex_compare);
    }
    return NULL;
 }
@@ -77,72 +79,56 @@ void* connetToClient(void *arg) {
       pthread_t t1, t2, t3;
       int lu;
       while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
+         pthread_mutex_lock(&mutex_client);
          meilleure_image.distance = 64;
          if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
             for (int i=0; i < 3; i++)
                sfc->to_compare[i].client = client;
-            pthread_mutex_init(&mutex, NULL);
+            pthread_mutex_init(&mutex_compare, NULL);
             pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
             pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
             pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
-            pthread_join(t1, NULL);
-            pthread_join(t2, NULL);
             pthread_join(t3, NULL);
+            pthread_join(t2, NULL);
+            pthread_join(t1, NULL);
          }
-         pthread_mutex_destroy(&mutex);
+         pthread_mutex_destroy(&mutex_compare);
          checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
+         pthread_mutex_unlock(&mutex_client);
       }
       return NULL;
 }
 
-int main(){
-   struct to_compare_image to_compare[3];
-   if (!getPictures(to_compare))
-      return EXIT_FAILURE;
-   int server_fd, new_socket;
-   struct sockaddr_in address=create_socket(&server_fd);
+void acceptClient(int *server_fd, struct sockaddr_in address, struct to_compare_image* to_compare){
+   int new_socket;
    size_t addrlen = sizeof(address);
-   int clientfds[1000];
-   for(int i = 0; i < 1000; i++){
-      clientfds[i] = -1;
-   }
    struct socket_for_client sfc;
    for(int j=0; j<3; j++)
       sfc.to_compare[j]=to_compare[j];
    while (1) {
-      int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
-      if (new_socket == -1) {
-         perror("accept");
-         continue;
-      }
-      int i;
-      for (i = 0; i < 1000; i++) {
-         if (clientfds[i] == -1) {
-            clientfds[i] = new_socket;
-            break;
-         }
-      }
-      if (i < 1000) {
+      for (int i=0; i < 1000; i++){
+         new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
+         if (new_socket == -1)
+            perror("accept");
          pthread_t thread;
          sfc.new_sock=new_socket;
-         if (pthread_create(&thread, NULL, connetToClient, (void*)&sfc) != 0) {
-               perror("pthread_create");
-               close(new_socket);
-         }
-      } else {
-         int nb_clients = 0;
-         for (int j = 0; j < 1000; j++) {
-            if (clientfds[j] != -1) {
-               nb_clients++;
-            }
-         }
-         if (nb_clients == 1000) {
-            close(new_socket);
-         } 
+         pthread_mutex_init(&mutex_client, NULL);
+         pthread_create(&thread, NULL, connetToClient, (void*)&sfc);
+         pthread_mutex_destroy(&mutex_client);
       }
    }
-   close(server_fd);
    close(new_socket);
+}
+
+int main(){
+   struct to_compare_image* to_compare = malloc(sizeof(struct to_compare_image) * 3);
+   if (!getPictures(to_compare))
+      return EXIT_FAILURE;
+   int server_fd;
+   struct sockaddr_in address=create_socket(&server_fd);
+   acceptClient(&server_fd, address, to_compare);
+   close(server_fd);
+   free(to_compare);
    ExempleSignaux();
    return 0;
 }
