@@ -55,7 +55,7 @@ int getPictures(struct to_compare_image* to_compare){
    return 1;
 }
 
-void create_socket(int* server_fd, int* new_socket){
+struct sockaddr_in create_socket(int* server_fd){
       *server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
       int opt = 1;
       setsockopt(*server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
@@ -65,28 +65,30 @@ void create_socket(int* server_fd, int* new_socket){
       address.sin_port = htons(5555);
       checked(bind(*server_fd, (struct sockaddr *)&address, sizeof(address))); 
       checked(listen(*server_fd, 10)); 
-      size_t addrlen = sizeof(address);
-      *new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
+      return address;
+      
 }
 
-void connetToClient(struct to_compare_image* to_compare, int new_socket){
+void* connetToClient(void *arg) {
+      struct socket_for_client*  sfc = (struct socket_for_client*) arg;
       struct client client;
       pthread_t t1, t2, t3;
       int lu;
-      while ((lu = read(new_socket, &client, sizeof(struct client))) > 0) {
-      meilleure_image.distance = 64;
-      if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
-         for (int i=0; i < 3; i++)
-            to_compare[i].client = client;
-         pthread_create(&t1, NULL, compare_image, (void*)&to_compare[0]);
-         pthread_create(&t2, NULL, compare_image, (void*)&to_compare[1]);
-         pthread_create(&t3, NULL, compare_image, (void*)&to_compare[2]);
-         pthread_join(t1, NULL);
-         pthread_join(t2, NULL);
-         pthread_join(t3, NULL);
+      while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
+         meilleure_image.distance = 64;
+         if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
+            for (int i=0; i < 3; i++)
+               sfc->to_compare[i].client = client;
+            pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
+            pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
+            pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
+            pthread_join(t1, NULL);
+            pthread_join(t2, NULL);
+            pthread_join(t3, NULL);
+         }
+         checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
       }
-      checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)));
-      }
+      return NULL;
 }
 
 int main(){
@@ -94,8 +96,47 @@ int main(){
    if (!getPictures(to_compare))
       return EXIT_FAILURE;
    int server_fd, new_socket;
-   create_socket(&server_fd, &new_socket);
-   connetToClient(to_compare, new_socket);
+   struct sockaddr_in address=create_socket(&server_fd);
+   size_t addrlen = sizeof(address);
+   int clientfds[10];
+   for(int i = 0; i < 10; i++){
+      clientfds[i] = -1;
+   }
+   struct socket_for_client sfc;
+   for(int j=0; j<3; j++)
+      sfc.to_compare[j]=to_compare[j];
+   while (1) {
+      int new_socket = checked(accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
+      if (new_socket == -1) {
+         perror("accept");
+         continue;
+      }
+      int i;
+      for (i = 0; i < 10; i++) {
+         if (clientfds[i] == -1) {
+            clientfds[i] = new_socket;
+            break;
+         }
+      }
+      if (i < 10) {
+         pthread_t thread;
+         sfc.new_sock=new_socket;
+         if (pthread_create(&thread, NULL, connetToClient, (void*)&sfc) != 0) {
+               perror("pthread_create");
+               close(new_socket);
+         }
+      } else {
+         int nb_clients = 0;
+         for (int j = 0; j < 10; j++) {
+            if (clientfds[j] != -1) {
+               nb_clients++;
+            }
+         }
+         if (nb_clients == 1000) {
+            close(new_socket);
+         } 
+      }
+   }
    close(server_fd);
    close(new_socket);
    ExempleSignaux();

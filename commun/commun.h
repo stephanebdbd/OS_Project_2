@@ -30,6 +30,10 @@ struct client_data{
   int chemins_longueur;
 };
 
+struct socket_for_client{
+  struct to_compare_image to_compare[3];
+  int new_sock;
+};
 
 int _checked(int ret, char* calling_function) {
   if (ret < 0) {
