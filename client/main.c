@@ -34,10 +34,13 @@ void clientListener(int sock){
             break;
          }
          checked_wr(write(sock, &client_data.client, sizeof(struct client)));
-         if ((read(sock, &client_data.meilleure_image, sizeof(struct image)) == -1) || (client_data.meilleure_image.distance >= 64))
-            printf("No similar image found (no comparison could be performed successfully).\n");
-         else
-            printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);
+         int lu;
+         if ((lu = read(sock, &client_data.meilleure_image, sizeof(struct image))) > 0){
+            if (client_data.meilleure_image.distance < 64)
+               printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);
+            else
+               printf("No similar image found (no comparison could be performed successfully).\n");
+         }
       }
       else
          printf("No similar image found (no comparison could be performed successfully).\n");

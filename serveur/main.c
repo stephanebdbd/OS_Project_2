@@ -19,18 +19,20 @@
 
 static volatile sig_atomic_t signalRecu = 0;
 struct image meilleure_image;
+pthread_mutex_t mutex;
 
 void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->longueur; j++) {
-      sleep(0);
+      pthread_mutex_lock(&mutex);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
       if (result < meilleure_image.distance) {
          meilleure_image.distance = result;
          strcpy(meilleure_image.chemin, to_compare->librairie[j].chemin);
       }
+      pthread_mutex_unlock(&mutex);
    }
    return NULL;
 }
@@ -79,6 +81,7 @@ void* connetToClient(void *arg) {
          if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
             for (int i=0; i < 3; i++)
                sfc->to_compare[i].client = client;
+            pthread_mutex_init(&mutex, NULL);
             pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
             pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
             pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
@@ -86,6 +89,7 @@ void* connetToClient(void *arg) {
             pthread_join(t2, NULL);
             pthread_join(t3, NULL);
          }
+         pthread_mutex_destroy(&mutex);
          checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
       }
       return NULL;
@@ -98,8 +102,8 @@ int main(){
    int server_fd, new_socket;
    struct sockaddr_in address=create_socket(&server_fd);
    size_t addrlen = sizeof(address);
-   int clientfds[10];
-   for(int i = 0; i < 10; i++){
+   int clientfds[1000];
+   for(int i = 0; i < 1000; i++){
       clientfds[i] = -1;
    }
    struct socket_for_client sfc;
@@ -112,13 +116,13 @@ int main(){
          continue;
       }
       int i;
-      for (i = 0; i < 10; i++) {
+      for (i = 0; i < 1000; i++) {
          if (clientfds[i] == -1) {
             clientfds[i] = new_socket;
             break;
          }
       }
-      if (i < 10) {
+      if (i < 1000) {
          pthread_t thread;
          sfc.new_sock=new_socket;
          if (pthread_create(&thread, NULL, connetToClient, (void*)&sfc) != 0) {
@@ -127,7 +131,7 @@ int main(){
          }
       } else {
          int nb_clients = 0;
-         for (int j = 0; j < 10; j++) {
+         for (int j = 0; j < 1000; j++) {
             if (clientfds[j] != -1) {
                nb_clients++;
             }
