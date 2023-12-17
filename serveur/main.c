@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include "../commun/commun.h"
 #include <asm-generic/socket.h>
 #include "imgdist.h"
@@ -21,6 +22,7 @@ static volatile sig_atomic_t signalRecu = 0;
 struct image meilleure_image;
 pthread_mutex_t mutex_compare;
 pthread_mutex_t mutex_client;
+sem_t client_semahpore;
 
 
 void ExempleSignaux(void);
@@ -28,6 +30,7 @@ void ExempleSignaux(void);
 void* compare_image(void *ptr) {
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->longueur; j++) {
+      // printf("Current thread id: %lu\n", pthread_self());
       pthread_mutex_lock(&mutex_compare);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
       if (result < meilleure_image.distance) {
@@ -60,63 +63,65 @@ int getPictures(struct to_compare_image* to_compare){
 }
 
 struct sockaddr_in create_socket(int* server_fd){
-      *server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
-      int opt = 1;
-      setsockopt(*server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
-      struct sockaddr_in address;   
-      address.sin_family = AF_INET;
-      address.sin_addr.s_addr = INADDR_ANY;
-      address.sin_port = htons(5555);
-      checked(bind(*server_fd, (struct sockaddr *)&address, sizeof(address))); 
-      checked(listen(*server_fd, 10)); 
-      return address;
-      
+   *server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
+   int opt = 1;
+   setsockopt(*server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+   struct sockaddr_in address;   
+   address.sin_family = AF_INET;
+   address.sin_addr.s_addr = INADDR_ANY;
+   address.sin_port = htons(5555);
+   checked(bind(*server_fd, (struct sockaddr *)&address, sizeof(address))); 
+   checked(listen(*server_fd, 10)); 
+   return address;
+   
 }
 
 void* connetToClient(void *arg) {
-      struct socket_for_client*  sfc = (struct socket_for_client*) arg;
-      struct client client;
-      pthread_t t1, t2, t3;
-      int lu;
-      while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
-         pthread_mutex_lock(&mutex_client);
-         meilleure_image.distance = 64;
-         if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
-            for (int i=0; i < 3; i++)
-               sfc->to_compare[i].client = client;
-            pthread_mutex_init(&mutex_compare, NULL);
-            pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
-            pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
-            pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
-            pthread_join(t3, NULL);
-            pthread_join(t2, NULL);
-            pthread_join(t1, NULL);
-         }
-         pthread_mutex_destroy(&mutex_compare);
-         checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
-         pthread_mutex_unlock(&mutex_client);
+   struct socket_for_client* sfc = (struct socket_for_client*) arg;
+   struct client client;
+   pthread_t t1, t2, t3;
+   int lu;
+   while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
+      pthread_mutex_lock(&mutex_client);
+      meilleure_image.distance = 64;
+      if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
+         for (int i=0; i < 3; i++)
+            sfc->to_compare[i].client = client;
+         pthread_mutex_init(&mutex_compare, NULL);
+         pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
+         pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
+         pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
+         pthread_join(t3, NULL);
+         pthread_join(t2, NULL);
+         pthread_join(t1, NULL);
       }
-      return NULL;
+      pthread_mutex_destroy(&mutex_compare);
+      checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
+      pthread_mutex_unlock(&mutex_client);
+   }
+   sem_post(&client_semahpore);
+   return NULL;
 }
 
 void acceptClient(int *server_fd, struct sockaddr_in address, struct to_compare_image* to_compare){
    int new_socket;
    size_t addrlen = sizeof(address);
    struct socket_for_client sfc;
+   sem_init(&client_semahpore, 0, MAX_CLIENTS);
    for(int j=0; j<3; j++)
       sfc.to_compare[j]=to_compare[j];
    while (1) {
-      for (int i=0; i < 1000; i++){
-         new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
-         if (new_socket == -1)
-            perror("accept");
-         pthread_t thread;
-         sfc.new_sock=new_socket;
-         pthread_mutex_init(&mutex_client, NULL);
-         pthread_create(&thread, NULL, connetToClient, (void*)&sfc);
-         pthread_mutex_destroy(&mutex_client);
-      }
+      sem_wait(&client_semahpore);
+      new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
+      if (new_socket == -1)
+         perror("accept");
+      sfc.new_sock=new_socket;
+      pthread_t thread;
+      pthread_mutex_init(&mutex_client, NULL);
+      pthread_create(&thread, NULL, connetToClient, (void*)&sfc);
+      pthread_mutex_destroy(&mutex_client);
    }
+   sem_destroy(&client_semahpore);
    close(new_socket);
 }
 

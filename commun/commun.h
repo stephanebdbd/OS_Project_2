@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <semaphore.h>
 #define MAX_CHEMINS_LONGUEUR 1000
+#define MAX_CLIENTS 1000
 
 struct image {
    char chemin[1024];
