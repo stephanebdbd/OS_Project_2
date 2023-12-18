@@ -14,15 +14,15 @@ void SignalHandler(int sig){
 
 int LectureImageBMP(struct client *client){
    /**
-   Initialise la structure client_data pour stocker les informations du client
+   Initialise la struct client_data pour stocker les informations du client
    paramtres:
-      client: Un pointeur vers une structure client ou on stocke les informations de l'image BMP lue.
+      client: Un pointeur vers une struct client ou on stocke les informations de l'image BMP lue.
    */
    FILE *fichierBMP = fopen(client->chemin, "rb");
    if (fichierBMP == NULL)
       return 0;
 
-   //  place le curseur du fichier à la fin de celui ci
+   //  Place le curseur du fichier à la fin de celui ci
    fseek(fichierBMP, 0, SEEK_END);
    //indique où se trouve le curseur, ce qui correspond à la taille du fichier en octets
    client->taille = ftell(fichierBMP);
@@ -41,7 +41,8 @@ int LectureImageBMP(struct client *client){
 
 void clientListener(int sock){
    /**
-   La fonction s'exécute de manière itérative tant que des chemins d'images sont disponibles à partir de l'entrée standard. Elle communique avec le serveur pour comparer les images et affiche la meilleur distance.
+   La fonction s'exécute de manière itérative tant que des chemins d'images sont disponibles à partir de l'entrée standard.
+   Elle communique avec le serveur pour comparer les images et affiche la meilleur distance.
    paramtres:
       sock: Un descripteur de fichier de socket. elle permet de commmunique entre le client et le serveur.
    */
@@ -58,12 +59,12 @@ void clientListener(int sock){
             printf("No similar image found (no comparison could be performed successfully).\n");
             break;
          }
-         // Envoie la structure client contenant les données de l'image BMP au serveur
+         // Envoie la struct client contenant les données de l'image BMP au serveur
          checked_wr(write(sock, &client_data.client, sizeof(struct client)));
          int lu;
          // Lit la meilleure image du serveur
          if ((lu = read(sock, &client_data.meilleure_image, sizeof(struct image))) > 0){
-            if (strcmp(client_data.meilleure_image.chemin, "SIGINT") == 0)
+            if (strcmp(client_data.meilleure_image.chemin, "SIGINT") == 0)    // Vérifie si le serveur a reçu un signal SIGPIPE
                signal(SIGINT, SignalHandler);
             if (client_data.meilleure_image.distance < 64)
                printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);

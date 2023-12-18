@@ -30,7 +30,7 @@ void* compare_image(void *ptr) {
    /**
    Fonction exécutée par chaque thread pour comparer les images.
    paramtres:
-    ptr: Le pointeur vers la structure to_compare_image.
+    ptr: Le pointeur vers la struct to_compare_image.
    return:
     NULL.
    */
@@ -51,7 +51,7 @@ int getPictures(struct to_compare_image* to_compare){
    /**
    Récupère la liste des images et les hashs depuis le programme externe "list-file".
    paramtres:
-    to_compare: Le tableau de structures to_compare_image.
+    to_compare: Le tableau de structs to_compare_image.
    return:
     1 en cas de succès, 0 en cas d'échec.
  */
@@ -70,9 +70,9 @@ int getPictures(struct to_compare_image* to_compare){
       // Calcul du hash pour l'image
       if (!PHash(to_compare[i].librairie[to_compare[i].amount_images].chemin, &to_compare[i].librairie[to_compare[i].amount_images].hash))
          return 0;
-      // Incrémente le compteur d'images pour la structure en cours
+      // Incrémente le compteur d'images pour la struct en cours
       to_compare[i].amount_images++;
-      // Passage à la structure suivante après 34 images (selon la logique dans le code d'origine)
+      // Passage à la struct suivante après 34 images (selon la logique dans le code d'origine)
       i += (to_compare[i].amount_images == 34) ? 1 : 0;
    }
    pclose(listing);
@@ -85,7 +85,7 @@ struct sockaddr_in create_socket(int* server_fd){
    paramtres:
     server_fd Pointeur vers le descripteur de fichier du socket.
    return:
-    adress: La structure sockaddr_in représentant l'adresse du serveur.
+    adress: La struct sockaddr_in représentant l'adresse du serveur.
    */
    *server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
    int opt = 1;
@@ -104,7 +104,7 @@ void* serveClient(void *arg) {
    /**
    Fonction exécutée par chaque thread pour servir un client.
    paramtres:
-    arg : Pointeur vers la structure socket_for_client.
+    arg : Pointeur vers la struct socket_for_client.
    return :
       NULL.
    */
@@ -117,7 +117,7 @@ void* serveClient(void *arg) {
       meilleure_image.distance = 64;
       // Vérifie si le hachage de l'image du client peut être calculé
       if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
-         // Initialise les structures pour la comparaison dans chaque thread
+         // Initialise les structs pour la comparaison dans chaque thread
          for (int i = 0; i < 3; i++)
             sfc->to_compare[i].client = client;
          pthread_mutex_init(&mutex_compare, NULL);
@@ -148,8 +148,8 @@ void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compar
    Accepte les connexions des clients et les traite.
    parametres:
     server_fd: Le descripteur de fichier du socket du serveur.
-    address: La structure sockaddr_in représentant l'adresse du serveur.
-    to_compare: Le tableau de structures to_compare_image.
+    address: La struct sockaddr_in représentant l'adresse du serveur.
+    to_compare: Le tableau de structs to_compare_image.
    */
    size_t addrlen = sizeof(address);
    struct socket_for_client sfc;
@@ -169,7 +169,7 @@ void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compar
       new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
       if (new_socket == -1) perror("accept");
       else {
-         // Initialise la structure pour le socket du client
+         // Initialise la struct pour le socket du client
          sfc.new_sock = new_socket;
          for (int j = 0; j < 3; j++)
             sfc.to_compare[j] = to_compare[j];

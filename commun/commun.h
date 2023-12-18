@@ -27,7 +27,7 @@ struct client {
 
 
 struct to_compare_image {
-  // Structure représentant les images à comparer  .
+  // Structure représentant les images à comparer.
   struct image librairie[34];  // Tableau de 34 images représentant la librairie à comparer
   struct client client;  // Client à comparer avec la librairie
   int amount_images;  // Nombre d'images dans la librairie
@@ -43,7 +43,7 @@ struct client_data {
 
 
 struct socket_for_client {
-  //?
+  // Structure qui contient les données nécessaire pour se connecter avec un client et le servir.
   struct to_compare_image to_compare[3];  // Trois ensembles d'images à comparer avec le client
   int new_sock;  // Nouvelle socket pour la communication avec le client
 };
