@@ -23,7 +23,7 @@ struct client{
 struct to_compare_image{
   struct image librairie[34];
   struct client client;
-  int longueur;
+  int amount_images;
 };
 
 struct client_data{

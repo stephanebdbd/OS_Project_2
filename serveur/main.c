@@ -29,7 +29,7 @@ void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
-   for (int j = 0; j < to_compare->longueur; j++) {
+   for (int j = 0; j < to_compare->amount_images; j++) {
       // printf("Current thread id: %lu\n", pthread_self());
       pthread_mutex_lock(&mutex_compare);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
@@ -50,13 +50,13 @@ int getPictures(struct to_compare_image* to_compare){
    }
    int i=0;
    for (int j=0; j < 3; j++)
-      to_compare[j].longueur = 0;
-   while ((fgets(to_compare[i].librairie[to_compare[i].longueur].chemin, sizeof(to_compare[i].librairie[to_compare[i].longueur].chemin), listing) != NULL)){
-      to_compare[i].librairie[to_compare[i].longueur].chemin[strlen(to_compare[i].librairie[to_compare[i].longueur].chemin)-1] = '\0';
-      if (!PHash(to_compare[i].librairie[to_compare[i].longueur].chemin, &to_compare[i].librairie[to_compare[i].longueur].hash))
+      to_compare[j].amount_images = 0;
+   while ((fgets(to_compare[i].librairie[to_compare[i].amount_images].chemin, sizeof(to_compare[i].librairie[to_compare[i].amount_images].chemin), listing) != NULL)){
+      to_compare[i].librairie[to_compare[i].amount_images].chemin[strlen(to_compare[i].librairie[to_compare[i].amount_images].chemin)-1] = '\0';
+      if (!PHash(to_compare[i].librairie[to_compare[i].amount_images].chemin, &to_compare[i].librairie[to_compare[i].amount_images].hash))
          return 0;
-      to_compare[i].longueur++;
-      i += (to_compare[i].longueur == 34) ? 1 : 0;
+      to_compare[i].amount_images++;
+      i += (to_compare[i].amount_images == 34) ? 1 : 0;
    }
    pclose(listing);
    return 1;
@@ -76,7 +76,7 @@ struct sockaddr_in create_socket(int* server_fd){
    
 }
 
-void* connetToClient(void *arg) {
+void* serveClient(void *arg) {
    struct socket_for_client* sfc = (struct socket_for_client*) arg;
    struct client client;
    pthread_t t1, t2, t3;
@@ -103,24 +103,24 @@ void* connetToClient(void *arg) {
    return NULL;
 }
 
-void acceptClient(int *server_fd, struct sockaddr_in address, struct to_compare_image* to_compare){
+void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compare_image* to_compare){
    int new_socket;
    size_t addrlen = sizeof(address);
    struct socket_for_client sfc;
+   for(int j=0; j<3; j++) sfc.to_compare[j] = to_compare[j];
    sem_init(&client_semahpore, 0, MAX_CLIENTS);
-   for(int j=0; j<3; j++)
-      sfc.to_compare[j]=to_compare[j];
+   pthread_mutex_init(&mutex_client, NULL);
    while (1) {
       sem_wait(&client_semahpore);
       new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
-      if (new_socket == -1)
-         perror("accept");
-      sfc.new_sock=new_socket;
-      pthread_t thread;
-      pthread_mutex_init(&mutex_client, NULL);
-      pthread_create(&thread, NULL, connetToClient, (void*)&sfc);
-      pthread_mutex_destroy(&mutex_client);
+      if (new_socket == -1) perror("accept");
+      else {
+         sfc.new_sock=new_socket;
+         pthread_t thread;
+         pthread_create(&thread, NULL, serveClient, (void*)&sfc);
+      }
    }
+   pthread_mutex_destroy(&mutex_client);
    sem_destroy(&client_semahpore);
    close(new_socket);
 }
@@ -131,7 +131,7 @@ int main(){
       return EXIT_FAILURE;
    int server_fd;
    struct sockaddr_in address=create_socket(&server_fd);
-   acceptClient(&server_fd, address, to_compare);
+   connetToClient(&server_fd, address, to_compare);
    close(server_fd);
    free(to_compare);
    ExempleSignaux();
