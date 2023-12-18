@@ -28,6 +28,13 @@ sem_t client_semahpore;
 void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
+   /**
+   Fonction exécutée par chaque thread pour comparer les images.
+   paramtres:
+    ptr: Le pointeur vers la structure to_compare_image.
+   return:
+    NULL.
+   */
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->amount_images; j++) {
       // printf("Current thread id: %lu\n", pthread_self());
@@ -43,6 +50,13 @@ void* compare_image(void *ptr) {
 }
 
 int getPictures(struct to_compare_image* to_compare){
+   /**
+   Récupère la liste des images et les hashs depuis le programme externe "list-file".
+   paramtres:
+    to_compare: Le tableau de structures to_compare_image.
+   return:
+    1 en cas de succès, 0 en cas d'échec.
+ */
    FILE *listing = popen("./list-file img", "r");
    if (listing == NULL) {
       perror("Erreur lors de l'ouverture du processus");
@@ -51,11 +65,16 @@ int getPictures(struct to_compare_image* to_compare){
    int i=0;
    for (int j=0; j < 3; j++)
       to_compare[j].amount_images = 0;
+   // Boucle principale pour lire les chemins des images depuis le fichier de liste
    while ((fgets(to_compare[i].librairie[to_compare[i].amount_images].chemin, sizeof(to_compare[i].librairie[to_compare[i].amount_images].chemin), listing) != NULL)){
+      // Supprime le caractère de nouvelle ligne à la fin de chaque chemin
       to_compare[i].librairie[to_compare[i].amount_images].chemin[strlen(to_compare[i].librairie[to_compare[i].amount_images].chemin)-1] = '\0';
+      // Calcul du hash pour l'image
       if (!PHash(to_compare[i].librairie[to_compare[i].amount_images].chemin, &to_compare[i].librairie[to_compare[i].amount_images].hash))
          return 0;
+      // Incrémente le compteur d'images pour la structure en cours
       to_compare[i].amount_images++;
+      // Passage à la structure suivante après 34 images (selon la logique dans le code d'origine)
       i += (to_compare[i].amount_images == 34) ? 1 : 0;
    }
    pclose(listing);
@@ -63,6 +82,13 @@ int getPictures(struct to_compare_image* to_compare){
 }
 
 struct sockaddr_in create_socket(int* server_fd){
+   /**
+   Crée un socket pour le serveur.
+   paramtres:
+    server_fd Pointeur vers le descripteur de fichier du socket.
+   return:
+    adress: La structure sockaddr_in représentant l'adresse du serveur.
+   */
    *server_fd = checked(socket(AF_INET, SOCK_STREAM, 0));
    int opt = 1;
    setsockopt(*server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
@@ -77,55 +103,100 @@ struct sockaddr_in create_socket(int* server_fd){
 }
 
 void* serveClient(void *arg) {
+   /**
+   Fonction exécutée par chaque thread pour servir un client.
+   paramtres:
+    arg : Pointeur vers la structure socket_for_client.
+   return :
+      NULL.
+   */
    struct socket_for_client* sfc = (struct socket_for_client*) arg;
    struct client client;
    pthread_t t1, t2, t3;
    int lu;
+   // Boucle principale pour lire les données du client et comparer les images
    while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
       pthread_mutex_lock(&mutex_client);
       meilleure_image.distance = 64;
+      // Vérifie si le hachage de l'image du client peut être calculé
       if (PHashRaw(client.contenuImage, client.taille, &client.hash)){
-         for (int i=0; i < 3; i++)
+         // Initialise les structures pour la comparaison dans chaque thread
+         for (int i = 0; i < 3; i++)
             sfc->to_compare[i].client = client;
          pthread_mutex_init(&mutex_compare, NULL);
+         // Crée trois threads pour la comparaison des images
          pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
          pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
          pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
+
+         // Attend la fin de chaque thread
          pthread_join(t1, NULL);
          pthread_join(t2, NULL);
          pthread_join(t3, NULL);
       }
+      // Detruit mutex de comparaison
       pthread_mutex_destroy(&mutex_compare);
+      // Envoie la meilleure image au client
       checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));
+      // Libère le mutex client
       pthread_mutex_unlock(&mutex_client);
    }
+   // Libère le sémaphore client
    sem_post(&client_semahpore);
    return NULL;
 }
 
 void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compare_image* to_compare){
+   /**
+   Accepte les connexions des clients et les traite.
+   parametres:
+    server_fd: Le descripteur de fichier du socket du serveur.
+    address: La structure sockaddr_in représentant l'adresse du serveur.
+    to_compare: Le tableau de structures to_compare_image.
+   */
    int new_socket;
    size_t addrlen = sizeof(address);
    struct socket_for_client sfc;
    for(int j=0; j<3; j++) sfc.to_compare[j] = to_compare[j];
    sem_init(&client_semahpore, 0, MAX_CLIENTS);
    pthread_mutex_init(&mutex_client, NULL);
+   // Initialise le sémaphore client avec un compteur initial de MAX_CLIENTS
+   sem_init(&client_semahpore, 0, MAX_CLIENTS);
+   pthread_mutex_init(&mutex_client, NULL);
+
+   // Boucle principale pour accepter les connexions des clients
    while (1) {
+      // Attends qu'un slot soit disponible dans le sémaphore client
       sem_wait(&client_semahpore);
+
+      // Accepte une nouvelle connexion et obtient le descripteur de fichier du socket associé
       new_socket = checked(accept(*server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen));
       if (new_socket == -1) perror("accept");
       else {
-         sfc.new_sock=new_socket;
+         // Initialise la structure pour le socket du client
+         sfc.new_sock = new_socket;
+         for (int j = 0; j < 3; j++)
+            sfc.to_compare[j] = to_compare[j];
+
+         // Crée un thread pour servir le client
          pthread_t thread;
          pthread_create(&thread, NULL, serveClient, (void*)&sfc);
       }
    }
+   // detruit mutex client
    pthread_mutex_destroy(&mutex_client);
+   // Détruit le sémaphore client
    sem_destroy(&client_semahpore);
+   // Ferme le socket du dernier client (cette ligne n'est jamais atteinte dans la boucle infinie)
    close(new_socket);
 }
 
 int main(){
+   /**
+   Fonction principale du serveur.
+   return:
+    Le code de sortie du programme.
+    */
    struct to_compare_image* to_compare = malloc(sizeof(struct to_compare_image) * 3);
    if (!getPictures(to_compare))
       return EXIT_FAILURE;

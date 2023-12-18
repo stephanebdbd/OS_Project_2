@@ -8,34 +8,46 @@
 #define MAX_CHEMINS_LONGUEUR 1000
 #define MAX_CLIENTS 1000
 
+
 struct image {
+  // Structure représentant une image avec son chemin, sa distance et son hash.
    char chemin[1024];
    int distance;
-   uint64_t hash;  
+   uint64_t hash;  // Hash de l'image représenté par un entier non signé de 64 bits
 };
-struct client{
+
+
+struct client {
+  // Structure représentant un client avec la taille de l'image, son chemin, son contenu et son hash.
   unsigned int taille;
   char chemin[1024];
-  char contenuImage[sizeof(char) * 1024 * 20];
-  uint64_t hash;
+  char contenuImage[sizeof(char) * 1024 * 20];  // Contenu de l'image (taille maximale de 20 Ko)
+  uint64_t hash;  // Hash de l'image représenté par un entier non signé de 64 bits
 };
 
-struct to_compare_image{
-  struct image librairie[34];
-  struct client client;
-  int amount_images;
+
+struct to_compare_image {
+  // Structure représentant les images à comparer  .
+  struct image librairie[34];  // Tableau de 34 images représentant la librairie à comparer
+  struct client client;  // Client à comparer avec la librairie
+  int amount_images;  // Nombre d'images dans la librairie
 };
 
-struct client_data{
-  struct client client;
-  struct image meilleure_image;
-  int chemins_longueur;
+
+struct client_data {
+  // Structure représentant les données d'un client, la meilleure image trouvée et la longueur totale des chemins.
+  struct client client;  // Structure représentant un client avec la taille de l'image, son chemin, son contenu et son hash.
+  struct image meilleure_image;  // Meilleure image trouvée lors de la comparaison
+  int chemins_longueur;  // Longueur totale des chemins
 };
 
-struct socket_for_client{
-  struct to_compare_image to_compare[3];
-  int new_sock;
+
+struct socket_for_client {
+  //?
+  struct to_compare_image to_compare[3];  // Trois ensembles d'images à comparer avec le client
+  int new_sock;  // Nouvelle socket pour la communication avec le client
 };
+
 
 int _checked(int ret, char* calling_function) {
   if (ret < 0) {
