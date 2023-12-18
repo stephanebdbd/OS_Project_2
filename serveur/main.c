@@ -20,12 +20,11 @@
 
 static volatile sig_atomic_t signalRecu = 0;
 struct image meilleure_image;
-pthread_mutex_t mutex_compare;
-pthread_mutex_t mutex_client;
+pthread_mutex_t mutex_compare, mutex_client;
 sem_t client_semahpore;
+pthread_t t1, t2, t3;
+int thread_creation = 0, new_socket;
 
-
-void ExempleSignaux(void);
 
 void* compare_image(void *ptr) {
    /**
@@ -37,7 +36,6 @@ void* compare_image(void *ptr) {
    */
    struct to_compare_image* to_compare = (struct to_compare_image*)ptr;
    for (int j = 0; j < to_compare->amount_images; j++) {
-      // printf("Current thread id: %lu\n", pthread_self());
       pthread_mutex_lock(&mutex_compare);
       int result = DistancePHash(to_compare->client.hash, to_compare->librairie[j].hash);
       if (result < meilleure_image.distance) {
@@ -112,7 +110,6 @@ void* serveClient(void *arg) {
    */
    struct socket_for_client* sfc = (struct socket_for_client*) arg;
    struct client client;
-   pthread_t t1, t2, t3;
    int lu;
    // Boucle principale pour lire les données du client et comparer les images
    while ((lu = read(sfc->new_sock, &client, sizeof(struct client))) > 0) {
@@ -154,7 +151,6 @@ void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compar
     address: La structure sockaddr_in représentant l'adresse du serveur.
     to_compare: Le tableau de structures to_compare_image.
    */
-   int new_socket;
    size_t addrlen = sizeof(address);
    struct socket_for_client sfc;
    for(int j=0; j<3; j++) sfc.to_compare[j] = to_compare[j];
@@ -191,12 +187,39 @@ void connetToClient(int *server_fd, struct sockaddr_in address, struct to_compar
    close(new_socket);
 }
 
+void SignalHandler(int sig) {
+   switch (sig) {
+      case SIGINT:
+         if (thread_creation != 0) {
+            pthread_kill(t1, SIGINT);
+            pthread_kill(t2, SIGINT);
+            pthread_kill(t3, SIGINT);
+         }
+         sem_post(&client_semahpore);
+         exit(0);
+         break;
+      case SIGPIPE:
+         if (thread_creation != 0) {
+            pthread_kill(t1, SIGINT);
+            pthread_kill(t2, SIGINT);
+            pthread_kill(t3, SIGINT);
+         }
+         strcpy(meilleure_image.chemin , "SIGINT");
+         checked_wr(write(new_socket, &meilleure_image, sizeof(meilleure_image)));
+         sem_post(&client_semahpore);
+         break;
+      
+   }
+}
+
 int main(){
    /**
    Fonction principale du serveur.
    return:
     Le code de sortie du programme.
     */
+   signal(SIGINT, SignalHandler);
+   signal(SIGPIPE, SignalHandler);
    struct to_compare_image* to_compare = malloc(sizeof(struct to_compare_image) * 3);
    if (!getPictures(to_compare))
       return EXIT_FAILURE;
@@ -205,29 +228,5 @@ int main(){
    connetToClient(&server_fd, address, to_compare);
    close(server_fd);
    free(to_compare);
-   ExempleSignaux();
    return 0;
-}
-
-void SignalHandler(int sig) {
-   signalRecu = sig;
-}
-
-void ExempleSignaux(void) {
-   struct sigaction action;
-   action.sa_handler = SignalHandler;
-   sigemptyset(&action.sa_mask);
-   if (sigaction(SIGINT, &action, NULL) < 0) {
-      perror("sigaction()");
-      return;
-   }
-   raise(SIGINT);
-   sigset_t set;
-   sigemptyset(&set);        
-   sigaddset(&set, SIGINT);  
-   sigaddset(&set, SIGUSR1); 
-   if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-      perror("pthread_sigmask()");
-      return;
-   }
 }

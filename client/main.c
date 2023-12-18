@@ -7,6 +7,11 @@
 #include "../commun/commun.h"
 #include <asm-generic/socket.h>
 
+void SignalHandler(int sig){
+   if ((sig == SIGINT) || (sig == SIGPIPE))
+      exit(0);
+}
+
 int LectureImageBMP(struct client *client){
    /**
    Initialise la structure client_data pour stocker les informations du client
@@ -58,6 +63,8 @@ void clientListener(int sock){
          int lu;
          // Lit la meilleure image du serveur
          if ((lu = read(sock, &client_data.meilleure_image, sizeof(struct image))) > 0){
+            if (strcmp(client_data.meilleure_image.chemin, "SIGINT") == 0)
+               signal(SIGINT, SignalHandler);
             if (client_data.meilleure_image.distance < 64)
                printf("Most similar image found: '%s' with a distance of %d.\n", client_data.meilleure_image.chemin, client_data.meilleure_image.distance);
             else
@@ -70,6 +77,8 @@ void clientListener(int sock){
 }
 
 int main(){
+   signal(SIGINT, SignalHandler);
+   signal(SIGPIPE, SignalHandler);
    int sock = checked(socket(AF_INET, SOCK_STREAM, 0));
    struct sockaddr_in address;
    address.sin_family = AF_INET;
