@@ -91,9 +91,9 @@ void* connetToClient(void *arg) {
          pthread_create(&t1, NULL, compare_image, (void*)&sfc->to_compare[0]);
          pthread_create(&t2, NULL, compare_image, (void*)&sfc->to_compare[1]);
          pthread_create(&t3, NULL, compare_image, (void*)&sfc->to_compare[2]);
-         pthread_join(t3, NULL);
-         pthread_join(t2, NULL);
          pthread_join(t1, NULL);
+         pthread_join(t2, NULL);
+         pthread_join(t3, NULL);
       }
       pthread_mutex_destroy(&mutex_compare);
       checked_wr(write(sfc->new_sock, &meilleure_image, sizeof(meilleure_image)));

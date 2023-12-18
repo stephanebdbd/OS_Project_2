@@ -54,8 +54,11 @@ int main(){
       address.sin_addr.s_addr = INADDR_ANY;
       address.sin_port = htons(5555);
    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
-   checked(connect(sock, (struct sockaddr *)&address, sizeof(address)));
+   if (connect(sock, (struct sockaddr *)&address, sizeof(address)) == -1){
+      perror("Le serveur n'est pas initialisé.\nVeuillez réessayer plus tard.\n");
+      return 0;
+   }
    clientListener(sock);
    close(sock);
-   return 0;
+   return 1;
 }
