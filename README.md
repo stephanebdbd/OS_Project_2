@@ -1,9 +1,14 @@
 # Image Comparison Application (Client-Server)
 
 **Course:** INFO-F201 - Systèmes d'exploitation (Operating Systems)
+
 **University:** Université Libre de Bruxelles (ULB)
+
 **Academic Year:** 2023-2024
+
 **Project:** 2 (Client-Server Architecture with Threads & Sockets)
+
+**Grade**: 14.88/20
 
 ## 📜 Description
 
