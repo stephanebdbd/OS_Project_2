@@ -1,7 +1,3 @@
-Here is the `README.md` for the **Operating Systems 2** project. I have structured it based on your report (PDF) and standard GitHub formatting.
-
----
-
 # Image Comparison Application (Client-Server)
 
 **Course:** INFO-F201 - Systèmes d'exploitation (Operating Systems)
